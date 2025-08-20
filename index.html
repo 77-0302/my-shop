@@ -658,6 +658,16 @@ function sendOrder() {
     `;
   }
 
+  function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  const sheet = SpreadsheetApp.openById("1CyjMRapHB08Z0YXOQfBeMsyBwMdqVlD7DVyXvR2Mk28").getSheetByName("訂單");
+  sheet.appendRow([data.orderId, data.name, data.contact, data.items, data.total]);
+
+  return ContentService.createTextOutput(JSON.stringify({status: "success"}))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader("Access-Control-Allow-Origin", "*");
+}
+
   $$('#qName')?.addEventListener('input', renderAdmin);
   $$('#qContact')?.addEventListener('input', renderAdmin);
   $$('#qDate')?.addEventListener('input', renderAdmin);
