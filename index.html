@@ -525,175 +525,220 @@
       </div>
     `;
 
-    // 事件委派：加減刪除購物車商品
-wrap.querySelector('tbody').addEventListener('click', (e)=>{
-  const act = e.target?.dataset?.act;
-  if(!act) return;
-  const tr = e.target.closest('tr');
-  const key = tr?.dataset?.key;
-  const it = state.cart.find(x=>x.key===key);
-  if(!it) return;
-  if(act==='inc') it.qty += 1;
-  if(act==='dec') it.qty = Math.max(1, it.qty-1);
-  if(act==='del') state.cart = state.cart.filter(x=>x.key!==key);
-  saveCart();
-  renderConfirm();
-  renderCart();
-}, { once:false });
-
-// 送出訂單
-/***********************
- * 下單 & LocalStorage + Google Sheet
- ***********************/
-submitOrderBtn.addEventListener('click', ()=>{
-
-  const name = $$('#buyerName').value.trim();
-  const contact = $$('#buyerContact').value.trim();
-  if(!name || !contact){ alert('請填寫必填欄位'); return; }
-
-  const orderId = Date.now();
-  const items = state.cart.map(it => ({
-    styleName: it.styleName,
-    color: it.color,
-    size: it.size,
-    unitPrice: it.price,
-    qty: it.qty,
-    subtotal: it.price * it.qty
-  }));
-
-  const total = items.reduce((sum,x)=>sum+x.subtotal,0);
-
-  const order = {
-    orderId,
-    buyerName: name,
-    contact,
-    items,           // 保留陣列格式
-    total,
-    createdAt: new Date().toISOString()
-  };
-
-  // 存本機 LocalStorage
-  const orders = JSON.parse(localStorage.getItem('orders')||'[]');
-  orders.unshift(order);
-  localStorage.setItem('orders', JSON.stringify(orders));
-
-  // 送到 Google Sheet
-  const formattedItems = items.map(i=>`${i.styleName}-${i.color}-${i.size}`).join(", ");
-  const orderData = {
-    orderId,
-    name,
-    contact,
-    items: formattedItems,  // 字串格式送到 Sheet
-    total
-  };
-
-  fetch("https://script.google.com/macros/s/YOUR_WEBAPP_ID/exec", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(orderData),
-    mode: "no-cors" // 靜態頁面必須
-  });
-
-  // 清空購物車
-  state.cart = [];
-  saveCart();
-  renderCart();
-  routeTo('#thanks');
-  alert("訂單已送出！請打開 Google Sheet 確認");
-});
-
-  /***********************
- * 後台頁（本機）
- ***********************/
-const adminWrap = $$('#adminTableWrap');
-
-function renderAdmin(){
-  const orders = JSON.parse(localStorage.getItem('orders')||'[]');
-  const qName = $$('#qName').value.trim();
-  const qContact = $$('#qContact').value.trim();
-  const qDate = $$('#qDate').value.trim();
-
-  const filtered = orders.filter(o=>{
-    const okName = !qName || o.buyerName.includes(qName);
-    const okContact = !qContact || o.contact.includes(qContact);
-    const okDate = !qDate || (o.createdAt||'').slice(0,10)===qDate;
-    return okName && okContact && okDate;
-  });
-
-  if(filtered.length===0){
-    adminWrap.innerHTML = '<p class="muted">目前沒有符合條件的訂單。</p>'; 
-    return; 
+    // 事件委派
+    wrap.querySelector('tbody').addEventListener('click', (e)=>{
+      const act = e.target?.dataset?.act;
+      if(!act) return;
+      const tr = e.target.closest('tr');
+      const key = tr?.dataset?.key;
+      const it = state.cart.find(x=>x.key===key);
+      if(!it) return;
+      if(act==='inc') it.qty += 1;
+      if(act==='dec') it.qty = Math.max(1, it.qty-1);
+      if(act==='del') state.cart = state.cart.filter(x=>x.key!==key);
+      saveCart();
+      renderConfirm();
+      renderCart();
+    }, { once:false });
   }
 
-  const rows = filtered.map(o=>{
-    // 如果 items 是陣列就 map，否則直接用字串
-    const itemsStr = Array.isArray(o.items) 
-      ? o.items.map(i=>`${i.styleName}／${i.color}／${i.size} ×${i.qty}（${formatNT(i.subtotal)}）`).join('<br>')
-      : o.items;
+  submitOrderBtn.addEventListener('click', ()=>{
+    const name = $$('#buyerName').value.trim();
+    const contact = $$('#buyerContact').value.trim();
+    if(!name || !contact){ alert('請填寫必填欄位'); return; }
 
-    return `<tr>
-      <td><b>${o.orderId}</b><div class="muted">${(o.createdAt||'').replace('T',' ').slice(0,16)}</div></td>
-      <td>${o.buyerName}</td>
-      <td>${o.contact}</td>
-      <td>${itemsStr}</td>
-      <td class="right">${formatNT(o.total)}</td>
-    </tr>`;
-  }).join('');
+   // 組訂單資料
+const orderId = uid(); // 生成訂單編號
+const items = state.cart.map(it => ({
+  styleName: it.styleName,
+  color: it.color,
+  size: it.size,
+  unitPrice: it.price,
+  qty: it.qty,
+  subtotal: it.price * it.qty,
+}));
 
-  adminWrap.innerHTML = `
-    <div class="card" style="overflow:auto">
-      <table>
-        <thead>
-          <tr><th>訂單編號／時間</th><th>名稱</th><th>聯絡</th><th>明細</th><th class="right">總金額</th></tr>
-        </thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  `;
+const total = items.reduce((sum, x) => sum + x.subtotal, 0);
+
+const order = {
+  orderId,
+  buyerName: name,
+  contact,
+  items,
+  total,
+  createdAt: new Date().toISOString(),
+};
+
+// 假後台：存本機（LocalStorage）
+const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+orders.unshift(order);
+localStorage.setItem('orders', JSON.stringify(orders));
+function sendOrder() {
+  // 將購物車資料格式化成「款式-顏色-尺寸」
+  const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
+
+  const orderData = {
+    orderId: Date.now(),
+    name: buyerName,
+    contact: buyerContact,
+    items: formattedItems,
+    total: totalAmount
+  };
+
+function sendOrder() {
+  // 假設你的購物車變數
+  const cartItems = [
+    {style:"2025-像素風噪四T", color:"黑色", size:"S", price:690, qty:1},
+    {style:"2025-像素風噪四T", color:"白色", size:"M", price:690, qty:2}
+  ];
+  const buyerName = "小明";
+  const buyerContact = "0912345678";
+
+  const totalAmount = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  // 格式化 items 為可讀文字
+  const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
+
+  const orderData = {
+    orderId: Date.now(),
+    name: buyerName,
+    contact: buyerContact,
+    items: formattedItems,
+    total: totalAmount
+  };
+
+  fetch("https://script.google.com/macros/s/AKfycby04Kl_i4-0l1iso9MQB4m0KZOD-TgB3qci6TeIFGFECdbtRLrEKYayfRH1EwDntkdX4Q/exec", {
+    method: "POST",
+    mode: "no-cors", // 靜態頁面送資料必須
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(orderData)
+  });
+
+  alert("訂單已送出！請打開 Google Sheet 確認");
 }
 
-$$('#qName')?.addEventListener('input', renderAdmin);
-$$('#qContact')?.addEventListener('input', renderAdmin);
-$$('#qDate')?.addEventListener('input', renderAdmin);
 
-$$('#exportCsv')?.addEventListener('click', ()=>{
-  const orders = JSON.parse(localStorage.getItem('orders')||'[]');
-  if(!orders.length){ alert('沒有資料'); return; }
+  // 送出後清空購物車，跳到感謝頁
+  cartItems = [];
+  totalAmount = 0;
+  showThankYouPage(); // 你原本網站跳感謝頁的函式
+}
 
-  const headers = ['訂單編號','購買人','聯絡方式','款式','顏色','尺寸','單價','數量','小計','總金額','建立時間'];
-  const lines = [headers.join(',')];
 
-  orders.forEach(o=>{
-    // 如果 items 是陣列就展開，否則就跳過
-    if(Array.isArray(o.items)){
+    // 清空購物車 & 返回感謝頁
+    state.cart = [];
+    saveCart();
+    renderCart();
+    routeTo('#thanks');
+  });
+
+  /***********************
+   * 後台頁（本機）
+   ***********************/
+  const adminWrap = $$('#adminTableWrap');
+  function renderAdmin(){
+    const orders = JSON.parse(localStorage.getItem('orders')||'[]');
+    const qName = $$('#qName').value.trim();
+    const qContact = $$('#qContact').value.trim();
+    const qDate = $$('#qDate').value.trim();
+
+    const filtered = orders.filter(o=>{
+      const okName = !qName || o.buyerName.includes(qName);
+      const okContact = !qContact || o.contact.includes(qContact);
+      const okDate = !qDate || (o.createdAt||'').slice(0,10)===qDate;
+      return okName && okContact && okDate;
+    });
+
+    if(filtered.length===0){ adminWrap.innerHTML = '<p class="muted">目前沒有符合條件的訂單。</p>'; return; }
+
+    const rows = filtered.map(o=>{
+      const items = o.items.map(i=>`${i.styleName}／${i.color}／${i.size} ×${i.qty}（${formatNT(i.subtotal)}）`).join('<br>');
+      return `<tr>
+        <td><b>${o.orderId}</b><div class="muted">${(o.createdAt||'').replace('T',' ').slice(0,16)}</div></td>
+        <td>${o.buyerName}</td>
+        <td>${o.contact}</td>
+        <td>${items}</td>
+        <td class="right">${formatNT(o.total)}</td>
+      </tr>`
+    }).join('');
+
+    adminWrap.innerHTML = `
+      <div class="card" style="overflow:auto">
+        <table>
+          <thead>
+            <tr><th>訂單編號／時間</th><th>名稱</th><th>聯絡</th><th>明細</th><th class="right">總金額</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  
+
+  $$('#qName')?.addEventListener('input', renderAdmin);
+  $$('#qContact')?.addEventListener('input', renderAdmin);
+  $$('#qDate')?.addEventListener('input', renderAdmin);
+
+  $$('#exportCsv')?.addEventListener('click', ()=>{
+    const orders = JSON.parse(localStorage.getItem('orders')||'[]');
+    if(!orders.length){ alert('沒有資料'); return; }
+    const headers = ['訂單編號','購買人','聯絡方式','款式','顏色','尺寸','單價','數量','小計','總金額','建立時間'];
+    const lines = [headers.join(',')];
+    orders.forEach(o=>{
       o.items.forEach(i=>{
         lines.push([
           o.orderId,
           '"'+o.buyerName.replaceAll('"','""')+'"',
           '"'+o.contact.replaceAll('"','""')+'"',
-          '"'+i.styleName+'"',
-          i.color,
-          i.size,
-          i.unitPrice,
-          i.qty,
-          i.subtotal,
-          o.total,
-          o.createdAt
+          '"'+i.styleName+'"', i.color, i.size, i.unitPrice, i.qty, i.subtotal,
+          o.total, o.createdAt
         ].join(','));
       });
+    });
+    const blob = new Blob(["\ufeff" + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'orders.csv'; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  $$('#clearOrders')?.addEventListener('click', ()=>{
+    if(confirm('確定要清空本機訂單資料？此操作無法復原')){
+      localStorage.removeItem('orders');
+      renderAdmin();
     }
   });
 
-  const blob = new Blob(["\ufeff" + lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'orders.csv'; a.click();
-  URL.revokeObjectURL(url);
-});
-
-$$('#clearOrders')?.addEventListener('click', ()=>{
-  if(confirm('確定要清空本機訂單資料？此操作無法復原')){
-    localStorage.removeItem('orders');
-    renderAdmin();
+  /***********************
+   * 路由（#shop / #confirm / #thanks / #admin）
+   ***********************/
+  function routeTo(hash){
+    location.hash = hash;
+    handleRoute();
   }
-});
+
+  function handleRoute(){
+    const page = location.hash || '#shop';
+    document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+    const map = { '#shop':'page-shop', '#confirm':'page-confirm', '#thanks':'page-thanks', '#admin':'page-admin' };
+    const id = map[page] || 'page-shop';
+    document.getElementById(id).classList.add('active');
+
+    if(page==='#confirm') renderConfirm();
+    if(page==='#admin') renderAdmin();
+  }
+  window.addEventListener('hashchange', handleRoute);
+
+  /***********************
+   * 啟動
+   ***********************/
+  (function init(){
+    refreshStyleOptions();
+    refreshColorSize();
+    renderCart();
+    handleRoute();
+  })();
+  </script>
+</body>
+</html>
