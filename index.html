@@ -525,112 +525,76 @@
       </div>
     `;
 
-    // 事件委派
-    wrap.querySelector('tbody').addEventListener('click', (e)=>{
-      const act = e.target?.dataset?.act;
-      if(!act) return;
-      const tr = e.target.closest('tr');
-      const key = tr?.dataset?.key;
-      const it = state.cart.find(x=>x.key===key);
-      if(!it) return;
-      if(act==='inc') it.qty += 1;
-      if(act==='dec') it.qty = Math.max(1, it.qty-1);
-      if(act==='del') state.cart = state.cart.filter(x=>x.key!==key);
-      saveCart();
-      renderConfirm();
-      renderCart();
-    }, { once:false });
+    // 事件委派：加減刪除購物車商品
+wrap.querySelector('tbody').addEventListener('click', (e)=>{
+  const act = e.target?.dataset?.act;
+  if(!act) return;
+  const tr = e.target.closest('tr');
+  const key = tr?.dataset?.key;
+  const it = state.cart.find(x=>x.key===key);
+  if(!it) return;
+  if(act==='inc') it.qty += 1;
+  if(act==='dec') it.qty = Math.max(1, it.qty-1);
+  if(act==='del') state.cart = state.cart.filter(x=>x.key!==key);
+  saveCart();
+  renderConfirm();
+  renderCart();
+}, { once:false });
+
+// 送出訂單
+submitOrderBtn.addEventListener('click', ()=>{
+
+  const name = $$('#buyerName').value.trim();
+  const contact = $$('#buyerContact').value.trim();
+  if(!name || !contact){ 
+    alert('請填寫必填欄位'); 
+    return; 
   }
 
-  submitOrderBtn.addEventListener('click', ()=>{
-    const name = $$('#buyerName').value.trim();
-    const contact = $$('#buyerContact').value.trim();
-    if(!name || !contact){ alert('請填寫必填欄位'); return; }
+  // 組訂單資料
+  const orderId = uid();
+  const items = state.cart.map(it => ({
+    styleName: it.styleName,
+    color: it.color,
+    size: it.size,
+    unitPrice: it.price,
+    qty: it.qty,
+    subtotal: it.price * it.qty,
+  }));
 
-   // 組訂單資料
-const orderId = uid(); // 生成訂單編號
-const items = state.cart.map(it => ({
-  styleName: it.styleName,
-  color: it.color,
-  size: it.size,
-  unitPrice: it.price,
-  qty: it.qty,
-  subtotal: it.price * it.qty,
-}));
+  const total = items.reduce((sum, x) => sum + x.subtotal, 0);
 
-const total = items.reduce((sum, x) => sum + x.subtotal, 0);
-
-const order = {
-  orderId,
-  buyerName: name,
-  contact,
-  items,
-  total,
-  createdAt: new Date().toISOString(),
-};
-
-// 假後台：存本機（LocalStorage）
-const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-orders.unshift(order);
-localStorage.setItem('orders', JSON.stringify(orders));
-function sendOrder() {
-  // 將購物車資料格式化成「款式-顏色-尺寸」
-  const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
+  // 將購物車資料格式化成「款式-顏色-尺寸」可讀字串
+  const formattedItems = items.map(it => `${it.styleName}-${it.color}-${it.size}`).join(", ");
 
   const orderData = {
-    orderId: Date.now(),
-    name: buyerName,
-    contact: buyerContact,
+    orderId,
+    name,
+    contact,
     items: formattedItems,
-    total: totalAmount
+    total
   };
 
-function sendOrder() {
-  // 假設你的購物車變數
-  const cartItems = [
-    {style:"2025-像素風噪四T", color:"黑色", size:"S", price:690, qty:1},
-    {style:"2025-像素風噪四T", color:"白色", size:"M", price:690, qty:2}
-  ];
-  const buyerName = "小明";
-  const buyerContact = "0912345678";
-
-  const totalAmount = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
-
-  // 格式化 items 為可讀文字
-  const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
-
-  const orderData = {
-    orderId: Date.now(),
-    name: buyerName,
-    contact: buyerContact,
-    items: formattedItems,
-    total: totalAmount
-  };
-
-  fetch("https://script.google.com/macros/s/AKfycby04Kl_i4-0l1iso9MQB4m0KZOD-TgB3qci6TeIFGFECdbtRLrEKYayfRH1EwDntkdX4Q/exec", {
+  // 送出到 Google Sheet
+  fetch("https://script.google.com/macros/s/AKfycbxxEfhvVmXYR9KqI2IuSCHSjM2cwY7zzN_UiGA_KxwhwoQlxe2g4uG6hmzxCQR8z5M4/exec", {  // <-- 改成你部署後的 Web App URL
     method: "POST",
-    mode: "no-cors", // 靜態頁面送資料必須
+    mode: "no-cors",             // 靜態頁面送資料必須
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
   });
 
+  // 假後台：存本機 LocalStorage
+  const orders = JSON.parse(localStorage.getItem('orders') || '[]');
+  orders.unshift({orderId, name, contact, items: formattedItems, total, createdAt: new Date().toISOString()});
+  localStorage.setItem('orders', JSON.stringify(orders));
+
+  // 清空購物車 & 跳感謝頁
+  state.cart = [];
+  saveCart();
+  renderCart();
+  routeTo('#thanks');
   alert("訂單已送出！請打開 Google Sheet 確認");
-}
-
-
-  // 送出後清空購物車，跳到感謝頁
-  cartItems = [];
-  totalAmount = 0;
-  showThankYouPage(); // 你原本網站跳感謝頁的函式
-}
-
-
-    // 清空購物車 & 返回感謝頁
-    state.cart = [];
-    saveCart();
-    renderCart();
-    routeTo('#thanks');
-  });
+});
 
   /***********************
    * 後台頁（本機）
