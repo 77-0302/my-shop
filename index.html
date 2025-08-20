@@ -602,16 +602,12 @@ submitOrderBtn.addEventListener('click', ()=>{
   alert("訂單已送出！請打開 Google Sheet 確認");
 });
 
-  /***********************
+/***********************
  * 後台頁（本機）
  ***********************/
 const adminWrap = $$('#adminTableWrap');
 
-/***********************
- * #admin 後台
- ***********************/
 function renderAdmin(){
-  const adminWrap = $$('#adminTableWrap');
   const orders = JSON.parse(localStorage.getItem('orders')||'[]');
   const qName = $$('#qName').value.trim();
   const qContact = $$('#qContact').value.trim();
@@ -624,13 +620,15 @@ function renderAdmin(){
     return okName && okContact && okDate;
   });
 
-  if(filtered.length===0){ adminWrap.innerHTML='<p class="muted">目前沒有符合條件的訂單。</p>'; return; }
+  if(filtered.length===0){
+    adminWrap.innerHTML='<p class="muted">目前沒有符合條件的訂單。</p>';
+    return;
+  }
 
   const rows = filtered.map(o=>{
     const itemsStr = Array.isArray(o.items)
       ? o.items.map(i=>`${i.styleName}／${i.color}／${i.size} ×${i.qty}（${formatNT(i.subtotal)}）`).join('<br>')
       : o.items;
-
     return `<tr>
       <td><b>${o.orderId}</b><div class="muted">${(o.createdAt||'').replace('T',' ').slice(0,16)}</div></td>
       <td>${o.buyerName}</td>
@@ -652,6 +650,7 @@ function renderAdmin(){
   `;
 }
 
+// 搜尋
 $$('#qName')?.addEventListener('input', renderAdmin);
 $$('#qContact')?.addEventListener('input', renderAdmin);
 $$('#qDate')?.addEventListener('input', renderAdmin);
