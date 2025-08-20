@@ -586,6 +586,7 @@ function sendOrder() {
   };
 
 function sendOrder() {
+  // 格式化購物車商品
   const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
 
   const orderData = {
@@ -596,9 +597,9 @@ function sendOrder() {
     total: totalAmount
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbyls6ExTipsKcm1xzALTRSGmQdYffrjsnPedYeU4vcJdt-gJogh7eWKo_vThiz4OGzJ9w/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbynrSL9W3dVpdZs0maLT_zHAi3biHuGyFRkowmYjs1Dokok5mdA6BPezptM8MgP-B82Pw/exec", {
     method: "POST",
-    mode: "no-cors", // GitHub Pages 靜態頁面可送出
+    mode: "no-cors", // 靜態頁面用，保證資料送到 Sheet
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
   })
@@ -608,7 +609,6 @@ function sendOrder() {
     alert("送出訂單失敗，請稍後再試");
   });
 }
-
 
   // 送出後清空購物車，跳到感謝頁
   cartItems = [];
