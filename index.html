@@ -587,13 +587,17 @@ function sendOrder() {
   };
 
   fetch("https://script.google.com/macros/s/AKfycbzWsMqiCRQyMqO9GqeBEpI7K1pHl9xmBZ1NHOYNYd6hbRONZbeRNfNffPiokzlHDjIl8A/exec", {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(orderData)
-  });
-
-
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(orderData)
+})
+.then(res => res.json())
+.then(data => {
+  console.log("訂單送出成功:", data);
+})
+.catch(err => {
+  console.error("送出訂單失敗:", err);
+});
 
 
 
