@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>測試送單</title>
+</head>
+<body>
+  <h1>測試送單到 Google Sheet</h1>
+  <button id="sendTest">送出測試訂單</button>
+
+  <script>
+    document.getElementById("sendTest").addEventListener("click", () => {
+      const testOrder = {
+        orderId: Date.now(),
+        name: "測試小明",
+        contact: "0912345678",
+        items: "測試商品-黑色-S",
+        total: 100
+      };
+
+      fetch("https://script.google.com/macros/s/你的WebAppID/exec", {
+        method: "POST",
+        mode: "no-cors", // GitHub Pages 靜態頁面可用
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(testOrder)
+      });
+
+      alert("測試訂單已送出，請打開 Google Sheet 檢查");
+    });
+  </script>
+</body>
+</html>
