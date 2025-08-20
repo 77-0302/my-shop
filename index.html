@@ -239,7 +239,7 @@
       images: [
         // 請把圖片放進 images/ 底下，或改成你自己的路徑
         'images/4people.png',
-         'images/SIZE01.jpg'
+         'images/size01.jpg'
       ],
       detailImages: [
          'images/4people.png'
@@ -254,7 +254,7 @@
       sizes: ['S','M','L','XL','XXL'],
       images: [
         'images/9people.png',
-        'images/SIZE01.jpg'
+        'images/size01.jpg'
       ],
       detailImages: [ 'images/9people.png'],
       colorAvailability: { '黑色': false, '白色': true },
@@ -267,7 +267,7 @@
       sizes: ['S','M','L','XL','XXL'],
       images: [
         'images/PARSON.png',
-        'images/SIZE01.jpg'
+        'images/size01.jpg'
       ],
       detailImages: ['images/PARSON.png'],
       colorAvailability: { '黑色': true, '白色': true },
@@ -576,33 +576,21 @@ localStorage.setItem('orders', JSON.stringify(orders));
 
 // 送出訂單到 Google 試算表
 function sendOrder() {
-  // 將購物車資料格式化成「款式-顏色-尺寸」，每個商品換行
-  const formattedItems = state.cart.map(item => `${item.styleName}-${item.color}-${item.size}`).join("\n");
+  const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
 
   const orderData = {
-    orderId: order.orderId,
-    name: order.buyerName,
-    contact: order.contact,
-    items: formattedItems,
-    total: order.total
+    orderId: Date.now(),
+    name: buyerName,
+    contact: buyerContact,
+    items: formattedItems, // 改成這裡
+    total: totalAmount
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbwN8uadQzTN4lqrhXIqbSocB-acCBf4DXEXM_NfJflund28a5jm2d3dgZRkFcat-cT9XQ/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbzWsMqiCRQyMqO9GqeBEpI7K1pHl9xmBZ1NHOYNYd6hbRONZbeRNfNffPiokzlHDjIl8A/exec", {
     method: "POST",
+    mode: "no-cors",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
-  })
-  .then(response => response.json())
-  .then(data => {
-    if(data.status === 'ok') {
-      alert("訂單送出成功！");
-    } else {
-      alert("送出失敗：" + data.message);
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    alert("送出過程出錯！");
   });
 
 
