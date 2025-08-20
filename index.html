@@ -542,53 +542,59 @@ wrap.querySelector('tbody').addEventListener('click', (e)=>{
 }, { once:false });
 
 // 送出訂單
+/***********************
+ * 下單 & LocalStorage + Google Sheet
+ ***********************/
 submitOrderBtn.addEventListener('click', ()=>{
 
   const name = $$('#buyerName').value.trim();
   const contact = $$('#buyerContact').value.trim();
-  if(!name || !contact){ 
-    alert('請填寫必填欄位'); 
-    return; 
-  }
+  if(!name || !contact){ alert('請填寫必填欄位'); return; }
 
-  // 組訂單資料
-  const orderId = uid();
+  const orderId = Date.now();
   const items = state.cart.map(it => ({
     styleName: it.styleName,
     color: it.color,
     size: it.size,
     unitPrice: it.price,
     qty: it.qty,
-    subtotal: it.price * it.qty,
+    subtotal: it.price * it.qty
   }));
 
-  const total = items.reduce((sum, x) => sum + x.subtotal, 0);
+  const total = items.reduce((sum,x)=>sum+x.subtotal,0);
 
-  // 將購物車資料格式化成「款式-顏色-尺寸」可讀字串
-  const formattedItems = items.map(it => `${it.styleName}-${it.color}-${it.size}`).join(", ");
+  const order = {
+    orderId,
+    buyerName: name,
+    contact,
+    items,           // 保留陣列格式
+    total,
+    createdAt: new Date().toISOString()
+  };
 
+  // 存本機 LocalStorage
+  const orders = JSON.parse(localStorage.getItem('orders')||'[]');
+  orders.unshift(order);
+  localStorage.setItem('orders', JSON.stringify(orders));
+
+  // 送到 Google Sheet
+  const formattedItems = items.map(i=>`${i.styleName}-${i.color}-${i.size}`).join(", ");
   const orderData = {
     orderId,
     name,
     contact,
-    items: formattedItems,
+    items: formattedItems,  // 字串格式送到 Sheet
     total
   };
 
-  // 送出到 Google Sheet
-  fetch("https://script.google.com/macros/s/AKfycbxxEfhvVmXYR9KqI2IuSCHSjM2cwY7zzN_UiGA_KxwhwoQlxe2g4uG6hmzxCQR8z5M4/exec", {  // <-- 改成你部署後的 Web App URL
+  fetch("https://script.google.com/macros/s/AKfycbxxEfhvVmXYR9KqI2IuSCHSjM2cwY7zzN_UiGA_KxwhwoQlxe2g4uG6hmzxCQR8z5M4/exec", {
     method: "POST",
-    mode: "no-cors",             // 靜態頁面送資料必須
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(orderData)
+    body: JSON.stringify(orderData),
+    mode: "no-cors" // 靜態頁面必須
   });
 
-  // 假後台：存本機 LocalStorage
-  const orders = JSON.parse(localStorage.getItem('orders') || '[]');
-  orders.unshift({orderId, name, contact, items: formattedItems, total, createdAt: new Date().toISOString()});
-  localStorage.setItem('orders', JSON.stringify(orders));
-
-  // 清空購物車 & 跳感謝頁
+  // 清空購物車
   state.cart = [];
   saveCart();
   renderCart();
@@ -601,7 +607,11 @@ submitOrderBtn.addEventListener('click', ()=>{
  ***********************/
 const adminWrap = $$('#adminTableWrap');
 
+/***********************
+ * #admin 後台
+ ***********************/
 function renderAdmin(){
+  const adminWrap = $$('#adminTableWrap');
   const orders = JSON.parse(localStorage.getItem('orders')||'[]');
   const qName = $$('#qName').value.trim();
   const qContact = $$('#qContact').value.trim();
@@ -614,14 +624,10 @@ function renderAdmin(){
     return okName && okContact && okDate;
   });
 
-  if(filtered.length===0){
-    adminWrap.innerHTML = '<p class="muted">目前沒有符合條件的訂單。</p>'; 
-    return; 
-  }
+  if(filtered.length===0){ adminWrap.innerHTML='<p class="muted">目前沒有符合條件的訂單。</p>'; return; }
 
   const rows = filtered.map(o=>{
-    // 如果 items 是陣列就 map，否則直接用字串
-    const itemsStr = Array.isArray(o.items) 
+    const itemsStr = Array.isArray(o.items)
       ? o.items.map(i=>`${i.styleName}／${i.color}／${i.size} ×${i.qty}（${formatNT(i.subtotal)}）`).join('<br>')
       : o.items;
 
@@ -650,6 +656,7 @@ $$('#qName')?.addEventListener('input', renderAdmin);
 $$('#qContact')?.addEventListener('input', renderAdmin);
 $$('#qDate')?.addEventListener('input', renderAdmin);
 
+// 匯出 CSV
 $$('#exportCsv')?.addEventListener('click', ()=>{
   const orders = JSON.parse(localStorage.getItem('orders')||'[]');
   if(!orders.length){ alert('沒有資料'); return; }
@@ -658,7 +665,6 @@ $$('#exportCsv')?.addEventListener('click', ()=>{
   const lines = [headers.join(',')];
 
   orders.forEach(o=>{
-    // 如果 items 是陣列就展開，否則就跳過
     if(Array.isArray(o.items)){
       o.items.forEach(i=>{
         lines.push([
@@ -685,6 +691,7 @@ $$('#exportCsv')?.addEventListener('click', ()=>{
   URL.revokeObjectURL(url);
 });
 
+// 清空本機訂單
 $$('#clearOrders')?.addEventListener('click', ()=>{
   if(confirm('確定要清空本機訂單資料？此操作無法復原')){
     localStorage.removeItem('orders');
