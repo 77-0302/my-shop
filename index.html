@@ -587,7 +587,7 @@ submitOrderBtn.addEventListener('click', ()=>{
     total
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbxxEfhvVmXYR9KqI2IuSCHSjM2cwY7zzN_UiGA_KxwhwoQlxe2g4uG6hmzxCQR8z5M4/exec", {
+  fetch("https://script.google.com/macros/s/YOUR_WEBAPP_ID/exec", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData),
