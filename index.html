@@ -586,7 +586,17 @@ function sendOrder() {
   };
 
 function sendOrder() {
-  // 格式化購物車商品
+  // 假設你的購物車變數
+  const cartItems = [
+    {style:"2025-像素風噪四T", color:"黑色", size:"S", price:690, qty:1},
+    {style:"2025-像素風噪四T", color:"白色", size:"M", price:690, qty:2}
+  ];
+  const buyerName = "小明";
+  const buyerContact = "0912345678";
+
+  const totalAmount = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  // 格式化 items 為可讀文字
   const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
 
   const orderData = {
@@ -597,18 +607,16 @@ function sendOrder() {
     total: totalAmount
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbynrSL9W3dVpdZs0maLT_zHAi3biHuGyFRkowmYjs1Dokok5mdA6BPezptM8MgP-B82Pw/exec", {
+  fetch("https://script.google.com/macros/s/AKfycby04Kl_i4-0l1iso9MQB4m0KZOD-TgB3qci6TeIFGFECdbtRLrEKYayfRH1EwDntkdX4Q/exec", {
     method: "POST",
-    mode: "no-cors", // 靜態頁面用，保證資料送到 Sheet
+    mode: "no-cors", // 靜態頁面送資料必須
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
-  })
-  .then(() => alert("訂單送出成功！"))
-  .catch(err => {
-    console.error("送出訂單失敗:", err);
-    alert("送出訂單失敗，請稍後再試");
   });
+
+  alert("訂單已送出！請打開 Google Sheet 確認");
 }
+
 
   // 送出後清空購物車，跳到感謝頁
   cartItems = [];
