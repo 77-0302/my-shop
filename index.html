@@ -585,9 +585,21 @@ function sendOrder() {
     total: totalAmount
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbwMoHu7i2Kj1yMRPHk9u0lnVMY9yml0irH8sFfURib2xYDE1TxngCIzYPzpVDlEQ0s_xQ/exec", {
+  function sendOrder() {
+  // 將購物車資料格式化成「款式-顏色-尺寸」
+  const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
+
+  const orderData = {
+    orderId: Date.now(),
+    name: buyerName,
+    contact: buyerContact,
+    items: formattedItems,
+    total: totalAmount
+  };
+
+  fetch("https://script.google.com/macros/s/AKfycbwNdlU2mwpseWANrlParJJ60pJA230cIcRjoTEIkBWWlrOkCtdL98PBfQ-XwXVCl36c8w/exec", {
     method: "POST",
-    mode: "no-cors", // <- 重要，避免 CORS 阻擋
+    mode: "no-cors", // <- GitHub Pages 靜態頁面可送出
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
   })
@@ -596,6 +608,7 @@ function sendOrder() {
     console.error("送出訂單失敗:", err);
     alert("送出訂單失敗，請稍後再試");
   });
+}
 
 
   // 送出後清空購物車，跳到感謝頁
