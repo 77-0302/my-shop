@@ -596,9 +596,9 @@ function sendOrder() {
     total: totalAmount
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbx1fC03BqvqFffrJWtHNQJvG-P8sJkh30W8KOqXlXDPHVrxTb8efhAFebZWm0vJzwaTvQ/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbyls6ExTipsKcm1xzALTRSGmQdYffrjsnPedYeU4vcJdt-gJogh7eWKo_vThiz4OGzJ9w/exec", {
     method: "POST",
-    mode: "no-cors", // <-- GitHub Pages 可用
+    mode: "no-cors", // GitHub Pages 靜態頁面可送出
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
   })
