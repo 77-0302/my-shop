@@ -573,43 +573,29 @@ const order = {
 const orders = JSON.parse(localStorage.getItem('orders') || '[]');
 orders.unshift(order);
 localStorage.setItem('orders', JSON.stringify(orders));
-
-// 送出訂單到 Google 試算表
-function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
-  const sheet = SpreadsheetApp.openById("1CyjMRapHB08Z0YXOQfBeMsyBwMdqVlD7DVyXvR2Mk28").getSheetByName("訂單");
-  sheet.appendRow([data.orderId, data.name, data.contact, data.items, data.total]);
-
-  return ContentService.createTextOutput(JSON.stringify({status: "success"}))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader("Access-Control-Allow-Origin", "*");
-}
-
 function sendOrder() {
+  // 將購物車資料格式化成「款式-顏色-尺寸」
   const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
 
   const orderData = {
     orderId: Date.now(),
     name: buyerName,
     contact: buyerContact,
-    items: formattedItems, // 改成這裡
+    items: formattedItems,
     total: totalAmount
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbxcvalVizwZDkDzpYkZZ2VmogA3H6Vk8PMVPJZMuRXREqC7SgM8GFebsVpfKkZAbwlckA/exec", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(orderData)
-})
-.then(res => res.json())
-.then(data => {
-  console.log("訂單送出成功:", data);
-})
-.catch(err => {
-  console.error("送出訂單失敗:", err);
-});
-
-
+  fetch("https://script.google.com/macros/s/AKfycbwMoHu7i2Kj1yMRPHk9u0lnVMY9yml0irH8sFfURib2xYDE1TxngCIzYPzpVDlEQ0s_xQ/exec", {
+    method: "POST",
+    mode: "no-cors", // <- 重要，避免 CORS 阻擋
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(orderData)
+  })
+  .then(() => alert("訂單送出成功！"))
+  .catch(err => {
+    console.error("送出訂單失敗:", err);
+    alert("送出訂單失敗，請稍後再試");
+  });
 
 
   // 送出後清空購物車，跳到感謝頁
