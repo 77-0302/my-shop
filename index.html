@@ -575,6 +575,16 @@ orders.unshift(order);
 localStorage.setItem('orders', JSON.stringify(orders));
 
 // 送出訂單到 Google 試算表
+function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  const sheet = SpreadsheetApp.openById("1CyjMRapHB08Z0YXOQfBeMsyBwMdqVlD7DVyXvR2Mk28").getSheetByName("訂單");
+  sheet.appendRow([data.orderId, data.name, data.contact, data.items, data.total]);
+
+  return ContentService.createTextOutput(JSON.stringify({status: "success"}))
+      .setMimeType(ContentService.MimeType.JSON)
+      .setHeader("Access-Control-Allow-Origin", "*");
+}
+
 function sendOrder() {
   const formattedItems = cartItems.map(item => `${item.style}-${item.color}-${item.size}`).join(", ");
 
@@ -586,7 +596,7 @@ function sendOrder() {
     total: totalAmount
   };
 
-  fetch("https://script.google.com/macros/s/AKfycbzWsMqiCRQyMqO9GqeBEpI7K1pHl9xmBZ1NHOYNYd6hbRONZbeRNfNffPiokzlHDjIl8A/exec", {
+  fetch("https://script.google.com/macros/s/AKfycbxcvalVizwZDkDzpYkZZ2VmogA3H6Vk8PMVPJZMuRXREqC7SgM8GFebsVpfKkZAbwlckA/exec", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(orderData)
@@ -658,15 +668,7 @@ function sendOrder() {
     `;
   }
 
-  function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
-  const sheet = SpreadsheetApp.openById("1CyjMRapHB08Z0YXOQfBeMsyBwMdqVlD7DVyXvR2Mk28").getSheetByName("訂單");
-  sheet.appendRow([data.orderId, data.name, data.contact, data.items, data.total]);
-
-  return ContentService.createTextOutput(JSON.stringify({status: "success"}))
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader("Access-Control-Allow-Origin", "*");
-}
+  
 
   $$('#qName')?.addEventListener('input', renderAdmin);
   $$('#qContact')?.addEventListener('input', renderAdmin);
